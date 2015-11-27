@@ -158,3 +158,11 @@ def proxy_request(session_id, url=None):
 
     take_screenshot(status, body)
     return helpers.form_response(status, headers, body)
+
+
+@webdriver.route("/status", methods=['GET'])
+def get_status():
+    if current_app.running:
+        return helpers.form_response(200, {}, "")
+    else:
+        return helpers.form_response(500, {}, "Node is shutting down...")
