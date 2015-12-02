@@ -11,10 +11,7 @@ from core.config import setup_config, config
 from tests.unit.helpers import server_is_up, server_is_down, \
     new_session_request, get_session_request, delete_session_request, \
     vmmaster_label, run_script, request_with_drop, BaseTestCase, \
-    set_primary_key, wait_for, DatabaseMock, request_mock
-
-
-from nose.twistedtools import reactor
+    set_primary_key, wait_for, DatabaseMock, request_mock, vmmaster_server_mock, fake_home_dir
 
 
 def ping_vm_true_mock(arg=None):
@@ -31,6 +28,8 @@ def transparent_mock():
 
 class BaseTestServer(BaseTestCase):
     def setUp(self):
+        from nose.twistedtools import threaded_reactor
+        reactor, _reactor_thread = threaded_reactor()
         with patch(
             'core.connection.Virsh', Mock(),
         ), patch(
@@ -42,7 +41,6 @@ class BaseTestServer(BaseTestCase):
         ):
             from vmmaster.server import VMMasterServer
             self.vmmaster = VMMasterServer(reactor, self.address[1])
-
         self.pool = self.vmmaster.app.pool
 
         server_is_up(self.address)
@@ -73,6 +71,13 @@ class BaseTestServer(BaseTestCase):
         return_value=(200, {}, json.dumps({'sessionId': "1"}))
     )
 )
+@patch(
+    'vmpool.virtual_machines_pool.VirtualMachinesPool.can_produce',
+    new=Mock(
+        __name__="can_produce",
+        return_value=True
+    )
+)
 class TestServer(BaseTestServer):
     def setUp(self):
         setup_config('data/config.py')
@@ -92,9 +97,10 @@ class TestServer(BaseTestServer):
 
     @patch('core.utils.delete_file', Mock())
     def tearDown(self):
-        self.vmmaster.app.sessions.kill_all()
+        with patch('core.db.Database', DatabaseMock()):
+            self.vmmaster.app.sessions.kill_all()
+            self.vmmaster.stop_services()
         self.ctx.pop()
-        del self.vmmaster
         server_is_down(self.address)
 
     def test_server_create_new_session(self):
@@ -433,9 +439,10 @@ class TestConnectionClose(BaseTestServer):
 
     @patch('core.utils.delete_file', Mock())
     def tearDown(self):
-        self.vmmaster.app.sessions.kill_all()
+        with patch('core.db.Database', DatabaseMock()):
+            self.vmmaster.app.sessions.kill_all()
+            self.vmmaster.stop_services()
         self.ctx.pop()
-        del self.vmmaster
         server_is_down(self.address)
 
     def test_req_closed_during_session_creating(self):
@@ -539,7 +546,7 @@ class TestConnectionClose(BaseTestServer):
             def wait_for_vm_start_tp_spawn():
                 wait_for(lambda: make_clone.called, timeout=2)
                 self.assertTrue(make_clone.called)
-                self.assertEqual(len(q), 1)
+                self.assertGreaterEqual(len(q), 1)
 
             request_with_drop(
                 self.address, self.desired_caps, wait_for_vm_start_tp_spawn
@@ -550,55 +557,6 @@ class TestConnectionClose(BaseTestServer):
 
         wait_for(lambda: vm_mock.delete.called)
         vm_mock.delete.assert_any_call()
-
-
-class TestServerShutdown(BaseTestServer):
-    def setUp(self):
-        setup_config('data/config.py')
-
-        self.address = ("localhost", 9001)
-
-        super(TestServerShutdown, self).setUp()
-
-        self.desired_caps = {
-            'desiredCapabilities': {
-                'platform':
-                self.vmmaster.app.pool.platforms.platforms.keys()[0]
-            }
-        }
-
-        self.ctx = self.vmmaster.app.app_context()
-        self.ctx.push()
-
-    def tearDown(self):
-        self.ctx.pop()
-
-    def test_server_shutdown(self):
-        """
-        - shutdown current instance
-        Expected: server is down
-        """
-        del self.vmmaster
-        with self.assertRaises(RuntimeError):
-            server_is_up(self.address, wait=1)
-
-    def test_session_is_not_deleted_after_server_shutdown(self):
-        """
-        - delete server with active session
-        Expected: session not deleted
-        """
-        from core.sessions import Session
-        session = Session()
-        session.closed = False
-
-        with patch('core.sessions.Sessions.get_session',
-                   Mock(return_value=session)):
-            del self.vmmaster
-
-        self.assertFalse(session.closed)
-        session.failed()
-
-        server_is_down(self.address)
 
 
 def custom_wait(self, method):
@@ -670,6 +628,7 @@ class TestServerWithPreloadedVM(BaseTestCase):
             )
         ):
             from vmmaster.server import VMMasterServer
+            from nose.twistedtools import reactor
             self.vmmaster = VMMasterServer(reactor, self.address[1])
 
             self.ctx = self.vmmaster.app.app_context()
@@ -684,8 +643,9 @@ class TestServerWithPreloadedVM(BaseTestCase):
         custom_wait
     )
     def tearDown(self):
-        self.vmmaster.app.sessions.kill_all()
-        del self.vmmaster
+        with patch('core.db.Database', DatabaseMock()):
+            self.vmmaster.app.sessions.kill_all()
+            self.vmmaster.stop_services()
         server_is_down(self.address)
         self.ctx.pop()
 
@@ -751,7 +711,8 @@ class TestSessionSteps(BaseTestServer):
         self.ctx.push()
 
     def tearDown(self):
-        del self.vmmaster
+        with patch('core.db.Database', DatabaseMock()):
+            self.vmmaster.stop_services()
         server_is_down(self.address)
         self.ctx.pop()
 
@@ -830,6 +791,8 @@ class TestRunScriptTimeGreaterThenSessionTimeout(BaseTestCase):
             'core.db.Database', DatabaseMock()
         ):
             from vmmaster.server import VMMasterServer
+            from nose.twistedtools import threaded_reactor
+            reactor, _reactor_thread = threaded_reactor()
             self.vmmaster = VMMasterServer(reactor, self.address[1])
 
         self.pool = self.vmmaster.app.pool
@@ -849,7 +812,8 @@ class TestRunScriptTimeGreaterThenSessionTimeout(BaseTestCase):
         self.ctx.push()
 
     def tearDown(self):
-        del self.vmmaster
+        with patch('core.db.Database', DatabaseMock()):
+            self.vmmaster.stop_services()
         server_is_down(self.address)
         self.ctx.pop()
 

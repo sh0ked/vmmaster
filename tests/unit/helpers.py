@@ -10,7 +10,6 @@ import socket
 import unittest
 
 from mock import Mock, patch
-from nose.twistedtools import reactor
 
 from core.utils.network_utils import get_socket
 
@@ -227,6 +226,8 @@ def vmmaster_server_mock(port):
         'core.sessions.SessionWorker', Mock()
     ):
         from vmmaster.server import VMMasterServer
+        from nose.twistedtools import threaded_reactor
+        reactor, _reactor_thread = threaded_reactor()
         return VMMasterServer(reactor, port)
 
 

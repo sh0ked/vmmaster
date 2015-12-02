@@ -4,6 +4,7 @@ import os
 class Config(object):
     BASEDIR = os.path.dirname(os.path.realpath(__file__))
     PORT = 9001
+    NO_SHUTDOWN_WITH_SESSIONS = True
 
     # PostgreSQL dbname
     DATABASE = "postgresql+psycopg2://vmmaster:vmmaster@localhost/testdb"

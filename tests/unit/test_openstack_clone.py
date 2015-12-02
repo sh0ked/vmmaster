@@ -344,8 +344,10 @@ class TestOpenstackClone(BaseTestCase):
                 return_value=Mock(delete=Mock(), rebuild=Mock()))))
 
             self.app.pool.add(self.platform, prefix='ondemand')
+            wait_for(lambda: len(self.app.pool.using) > 0)
             wait_for(lambda: self.app.pool.using[0].ready is True)
             self.app.pool.using[0].rebuild()
+            wait_for(lambda: len(self.app.pool.using) > 0)
             wait_for(lambda: self.app.pool.using[0].ready is True)
             self.assertEqual(self.app.pool.count(), 1)
             self.assertTrue(self.app.pool.using[0].ready)
