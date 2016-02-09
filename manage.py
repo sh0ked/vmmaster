@@ -7,13 +7,12 @@ from flask.ext.script import Manager
 
 from core.config import setup_config, config
 from core.utils.init import home_dir, useradd
-from core.logger import log
-from core.logger import setup_logging
+from core.logger import setup_logging, log
 
 try:
     setup_config('%s/config.py' % home_dir())
 except AttributeError:
-    config = None
+    config = None  # NOQA
 
 from core.utils import change_user_vmmaster
 
@@ -22,10 +21,7 @@ manager = Manager(app)
 
 
 def activate_logger():
-    setup_logging(logname='LOG', logdir=config.LOG_DIR)
-    setup_logging(
-        logname='POOL', logdir=config.LOG_DIR, logfile_name='pool.log',
-        scrnlog=False, txtlog=True, loglevel='DEBUG')
+    setup_logging(logname='LOG', logfile_name='vmmaster.log', loglevel='DEBUG')
 
 
 @manager.command

@@ -1,10 +1,12 @@
+# coding: utf-8
 import logging
 import logging.handlers
 import graypy
 import os
 import sys
 
-from .config import config
+from config import config
+from core.utils.network_utils import ping
 
 
 class StreamToLogger(object):
@@ -29,13 +31,16 @@ def setup_logging(
     if loglevel is None:
         loglevel = logging.getLevelName(config.LOG_LEVEL.upper())
 
-    logdir = os.path.abspath(logdir)
+    if logdir:
+        logdir = os.path.abspath(logdir)
+    else:
+        logdir = config.LOG_DIR
 
     if not os.path.exists(logdir):
         os.mkdir(logdir)
 
-    log = logging.getLogger(logname)
-    log.setLevel(loglevel)
+    _log = logging.getLogger(logname)
+    _log.setLevel(loglevel)
 
     if scrnlog:
         log_format = \
@@ -52,39 +57,34 @@ def setup_logging(
             backupCount=5
         )
         txt_handler.setFormatter(log_formatter)
-        log.addHandler(txt_handler)
-
-        log.info("Logger initialised.")
+        _log.addHandler(txt_handler)
 
     if scrnlog:
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(log_formatter)
-        log.addHandler(console_handler)
-
-    if config.LOG_LEVEL.lower():
-        stdout_logger = logging.getLogger('STDOUT')
-        slout = StreamToLogger(stdout_logger, logging.INFO)
-        sys.stdout = slout
+        _log.addHandler(console_handler)
 
     if hasattr(config, 'GRAYLOG'):
-        from core.utils.network_utils import ping
-
         host = config.GRAYLOG[0]
         port = config.GRAYLOG[1]
 
         if ping(host, port):
             graylog_handler = graypy.GELFHandler(host=host, port=port)
             graylog_handler.setFormatter(log_formatter)
-            log.addHandler(graylog_handler)
+            _log.addHandler(graylog_handler)
         else:
-            log.info('GRAYLOG URL not available')
+            _log.info('GRAYLOG URL not available')
+
+    stdout_logger = logging.getLogger('STDOUT')
+    slout = StreamToLogger(stdout_logger, logging.INFO)
+    sys.stdout = slout
 
     stderr_logger = logging.getLogger('STDERR')
     slerr = StreamToLogger(stderr_logger, logging.ERROR)
     sys.stderr = slerr
 
-    return log
+    _log.info("Logger initialised.")
+    return _log
 
 
 log = logging.getLogger('LOG')
-log_pool = logging.getLogger('POOL')
