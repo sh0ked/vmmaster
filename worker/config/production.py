@@ -11,6 +11,7 @@ STATIC_FOLDERS = 'worker/static'
 RABBITMQ_USER = 'n.ustinov'
 RABBITMQ_PASSWORD = 'Paicae6u'
 RABBITMQ_HOST = 'mq1.prod.test'
+RABBITMQ_PORT = 5672
 PARALLEL_PROCESSES = 1
 
 # database
