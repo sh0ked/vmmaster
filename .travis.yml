@@ -1,15 +1,11 @@
 sudo: true
 language: python
 python:
-  - 2.7
-install:
-  - ./install-dependencies.sh
-  - pip install tox==1.8.1 codecov==1.6.3
-  - tox -e basetest
+  - 3.5
 before_script:
-  - ./git-hooks/run-10-flake8.sh
+  - make lint
 script:
-  - tox -e unit-with-coverage
+  - make ctest
 after_success:
   - coverage xml
   - codecov

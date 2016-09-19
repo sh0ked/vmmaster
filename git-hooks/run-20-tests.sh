@@ -5,8 +5,8 @@ echo -en "\033[36m"
 echo "running tests with coverage!"
 echo -en "\033[0m"
 
-
-tox -e unit-with-coverage
+make clean
+make ctest
 RESULT=$?
 
 if [ $RESULT -ne 0 ]
