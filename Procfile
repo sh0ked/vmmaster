@@ -1,3 +1,2 @@
-cmd: muffin backend run --bind=0.0.0.0:$PORT --workers=1 --config=backend.config.production
-web: muffin frontend run --bind=0.0.0.0:5000 --workers=1 --config=frontend.config.production
-worker: muffin worker run --bind=0.0.0.0:9999 --workers=1 --config=frontend.config.production
+web: python -m aiohttp.web -H 0.0.0.0 -P 9000 backend.app:app
+cmd: python -m aiohttp.web -H 0.0.0.0 -P 5000 worker.app:app

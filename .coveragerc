@@ -1,6 +1,6 @@
 [run]
 branch = True
-source = app, tests
+source = backend, worker
 omit = site-packages
 
 [html]

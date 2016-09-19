@@ -1,7 +1,8 @@
 # coding: utf-8
+
 import ujson
 import logging
-from muffin import Response
+from aiohttp import web
 from core.exceptions import SessionException, PlatformException
 
 log = logging.getLogger(__name__)
@@ -22,9 +23,12 @@ def form_response(code, headers, body):
         headers = {
             'Content-Length': len(body)
         }
+
     if isinstance(headers, str):
         headers = ujson.loads(headers)
-    return Response(text=body, status=code, headers=headers)
+    if isinstance(body, dict):
+        body = ujson.dumps(body)
+    return web.Response(text=body, status=code, headers=headers)
 
 
 def selenium_error_response(message, selenium_code=13, status_code=500):
@@ -35,7 +39,7 @@ def selenium_error_response(message, selenium_code=13, status_code=500):
         }
     }
     error_context = ujson.dumps(error_context)
-    return Response(text=error_context, content_type='application/json', status=status_code)
+    return web.Response(text=error_context, content_type='application/json', status=status_code)
 
 
 def check_platform(platform):
@@ -49,11 +53,8 @@ async def get_platform(request):
 
 
 async def get_desired_capabilities(request):
-    dc = None
-    while not dc:
-        body = await request.json(loads=ujson.loads)
-        dc = body['desiredCapabilities']
-    return dc
+    body = await request.json(loads=ujson.loads)
+    return body['desiredCapabilities']
 
 
 def get_session_id(path):

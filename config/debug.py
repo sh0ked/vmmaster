@@ -3,5 +3,5 @@ from .production import *
 
 PEEWEE_CONNECTION = 'sqlite:///example.sqlite'
 
-# DEBUG = True
-LOG_LEVEL = 'INFO'
+DEBUG = False
+LOG_LEVEL = 'DEBUG'

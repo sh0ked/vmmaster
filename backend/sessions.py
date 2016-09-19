@@ -5,6 +5,7 @@ import ujson
 import logging
 from datetime import datetime
 
+from core.exceptions import TimeoutException
 
 log = logging.getLogger(__name__)
 
@@ -173,6 +174,8 @@ class Session(FakeSession):
             del headers["Host"]
 
         parameters = {
+            "vmmaster_session": int(self.id),
+            "platform": "ubuntu-14.04-x64",
             "method": request.method,
             "port": port,
             "url": request.path,
@@ -181,9 +184,12 @@ class Session(FakeSession):
         }
         if not queue:
             queue = "vmmaster_session_%s" % self.id
-            parameters["session"] = int(self.id)
 
         parameters = ujson.dumps(parameters)
         response = await request.app.queue_producer.add_msg_to_queue_with_response(queue, parameters)
-        response = ujson.loads(response)
-        return response.get("status"), response.get("headers", "{}"), response.get("content", "{}")
+        if response:
+            response = ujson.loads(response)
+            return response.get("status"), response.get("headers", "{}"), response.get("content", "{}")
+        else:
+            raise TimeoutException("Response is not received in %s seconds"
+                                   % request.app.cfg.BACKEND_REQUEST_TIMEOUT)

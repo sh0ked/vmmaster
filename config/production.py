@@ -6,13 +6,31 @@ from core.logger import setup_logging
 
 log = logging.getLogger(__name__)
 
+DEBUG = False
+
+# logging
+LOG_TYPE = "plain"
+LOG_LEVEL = "INFO"
+LOGGING = setup_logging(log_type=LOG_TYPE, log_level=LOG_LEVEL)
+
+SESSION_TIMEOUT = 60
+
+# selenium
+SELENIUM_PORT = 4455
+VMMASTER_AGENT_PORT = 9000
+
 STATIC_FOLDERS = 'worker/static'
 
 RABBITMQ_USER = 'n.ustinov'
 RABBITMQ_PASSWORD = 'Paicae6u'
 RABBITMQ_HOST = 'mq1.prod.test'
 RABBITMQ_PORT = 5672
-PARALLEL_PROCESSES = 1
+RABBITMQ_COMMAND_QUEUE = "vmmaster_commands"
+RABBITMQ_SESSION_QUEUE = "vmmaster_session"
+RABBITMQ_HEARTBEAT = 10
+RABBITMQ_REQUEST_TIMEOUT = 60
+RABBITMQ_PREFETCH_COUNT = 1
+BACKEND_REQUEST_TIMEOUT = 120
 
 # database
 DATABASE = "postgresql://vmmaster:vmmaster@localhost/vmmaster_db"
@@ -20,11 +38,6 @@ DATABASE = "postgresql://vmmaster:vmmaster@localhost/vmmaster_db"
 # screenshots
 SCREENSHOTS_DIR = os.sep.join(["/var/www/screenshots"])
 SCREENSHOTS_DAYS = 7
-
-# logging
-LOG_TYPE = "plain"
-LOG_LEVEL = "DEBUG"
-LOGGING = setup_logging(log_type=LOG_TYPE, log_level=LOG_LEVEL)
 
 # kvm
 USE_KVM = False
@@ -59,7 +72,3 @@ VM_CREATE_CHECK_PAUSE = 5
 VM_CREATE_CHECK_ATTEMPTS = 1000
 PRELOADER_FREQUENCY = 3
 PING_TIMEOUT = 15
-
-# selenium
-SELENIUM_PORT = 4455
-VMMASTER_AGENT_PORT = 9000
